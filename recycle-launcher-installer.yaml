@@ -1,0 +1,45 @@
+name: ReCycle Project
+version: 0.6.19
+slug: recycle-project
+game_slug: recycle-project
+runner: wine
+script:
+  files:
+  - wine_build: https://github.com/Kron4ek/Wine-Builds/releases/download/11.6/wine-11.6-amd64.tar.xz
+  - launcher_setup: https://cdn.playrecycle.com/recycle-launcher_0.6.19_x64-setup.exe
+  - steam_setup: https://cdn.fastly.steamstatic.com/client/installer/SteamSetup.exe
+  game:
+    exe: drive_c/start_game.bat
+    prefix: $GAMEDIR
+  installer:
+  - execute:
+      command: mkdir -p "$HOME/.local/share/lutris/runners/wine/"; rm -rf "$HOME/.local/share/lutris/runners/wine/wine-11.6-amd64"
+      description: Preparing runner directory...
+  - extract:
+      dst: $HOME/.local/share/lutris/runners/wine/wine-11.6-amd64
+      file: wine_build
+  - task:
+      app: corefonts
+      description: Installing MS Core Fonts...
+      name: winetricks
+      prefix: $GAMEDIR
+      silent: true
+  - execute:
+      command: WINEPREFIX="$GAMEDIR" "$HOME/.local/share/lutris/runners/wine/wine-11.6-amd64/bin/wine" "$steam_setup" /S
+      description: Installing Steam...
+  - execute:
+      command: WINEPREFIX="$GAMEDIR" "$HOME/.local/share/lutris/runners/wine/wine-11.6-amd64/bin/wine" "$launcher_setup" /S
+      description: Installing ReCycle Launcher...
+  - write_file:
+      content: "@echo off\r\ntasklist /FI \"IMAGENAME eq steam.exe\" 2>NUL | find /I /N \"steam.exe\">NUL\r\nif \"%ERRORLEVEL%\"==\"0\" (\r\n  echo Steam is already running.\r\n) else (\r\n  echo Initializing Steam (Silent Mode)...\r\n  reg delete \"HKEY_CURRENT_USER\\Software\\Valve\\Steam\\ActiveProcess\" /v \"ActiveProcessID\" /f >nul 2>&1\r\n  start \"\" \"C:\\Program Files (x86)\\Steam\\steam.exe\" -silent -no-browser -no-sandbox\r\n  timeout /t 5 /nobreak\r\n)\r\ncd /d \"C:\\users\\steamuser\\AppData\\Local\\recycle-launcher\"\r\nstart \"\" \"recycle-launcher.exe\" %*\r\nexit"
+      file: $GAMEDIR/drive_c/start_game.bat
+  - write_file:
+      content: "[Desktop Entry]\nName=ReCycle-URL-Handler\nExec=sh -c 'WINEPREFIX=\"$GAMEDIR\" \"$HOME/.local/share/lutris/runners/wine/wine-11.6-amd64/bin/wine\" \"C:\\\\users\\\\steamuser\\\\AppData\\\\Local\\\\recycle-launcher\\\\recycle-launcher.exe\" \"%u\"'\nMimeType=x-scheme-handler/recycle;\nType=Application\nNoDisplay=true\nTerminal=false\nCategories=Game;"
+      file: $HOME/.local/share/applications/recycle-handler.desktop
+  - execute:
+      command: xdg-mime default recycle-handler.desktop x-scheme-handler/recycle
+  - execute:
+      command: notify-send "ReCycle Ready" "IMPORTANT - Manually set Wine version to wine-11.6-amd64 in Lutris config!"
+  installer_info:
+    banner: https://cdn.discordapp.com/banners/1211384495589171280/08d8e3c71cb26a336df7b22f389907c9.webp?size=640
+    icon: https://cdn.discordapp.com/icons/1211384495589171280/07141a24c4ee83056ccfb3d6b188b816.webp?size=160&quality=lossless
